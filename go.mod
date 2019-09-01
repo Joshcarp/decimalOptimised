@@ -1,4 +1,4 @@
-module github.com/anz-bank/decimal
+module github.com/joshcarp/decimal
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
