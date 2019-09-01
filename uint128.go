@@ -43,7 +43,7 @@ func (a uint128T) add(b uint128T) uint128T {
 
 const base32 = 1 << 32
 
-// Compute q, r such that q*d + r = a.
+// Compute q, r such that q*d + r = a.sudo apt-get purge golang
 // Assumes a < d<<64.
 // http://www.hackersdelight.org/hdcodetxt/divlu.c.txt: divlu1()
 func (a uint128T) divPart64(d uint64) (q, r uint64) {

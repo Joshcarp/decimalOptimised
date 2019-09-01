@@ -9,7 +9,7 @@ import (
 )
 
 type decValContainer struct {
-	val1, val2, val3, expected, calculated Decimal64
+	val1, val2, val3, expected, calculated DecParts
 	calculatedString                       string
 	parseError                             error
 }
@@ -122,9 +122,9 @@ func setRoundingFromString(s string) Context64 {
 	}
 
 }
-func isRoundingErr(res, expected Decimal64) bool {
-	resP := res.getParts()
-	expectedP := expected.getParts()
+func isRoundingErr(res, expected DecParts) bool {
+	resP := res
+	expectedP := expected
 	sigDiff := int64(resP.significand.lo - expectedP.significand.lo)
 	expDiff := resP.exp - expectedP.exp
 	if (sigDiff == 1 || sigDiff == -1) && (expDiff == 1 || expDiff == -1 || expDiff == 0) {
@@ -178,13 +178,13 @@ func getInput(line string) testCaseStrings {
 	return data
 }
 
-// convertToDec64 converts the map object strings to decimal64s.
+// convertToDec64 converts the map object strings to DecPartss.
 func convertToDec64(testvals testCaseStrings) (dec64vals decValContainer) {
 	var err1, err2, err3, expectedErr error
-	dec64vals.val1, err1 = ParseDecimal64(testvals.val1)
-	dec64vals.val2, err2 = ParseDecimal64(testvals.val2)
-	dec64vals.val3, err3 = ParseDecimal64(testvals.val3)
-	dec64vals.expected, expectedErr = ParseDecimal64(testvals.expectedResult)
+	dec64vals.val1, err1 = ParseDecParts(testvals.val1)
+	dec64vals.val2, err2 = ParseDecParts(testvals.val2)
+	dec64vals.val3, err3 = ParseDecParts(testvals.val3)
+	dec64vals.expected, expectedErr = ParseDecParts(testvals.expectedResult)
 
 	if err1 != nil || err2 != nil || expectedErr != nil {
 		dec64vals.parseError = fmt.Errorf("error parsing in test: %s: \nval 1:%s: \nval 2: %s  \nval 3: %s\nexpected: %s ",
@@ -232,8 +232,8 @@ func runTest(context Context64, testVals decValContainer, testValStrings testCas
 }
 
 // TODO: get runTest to run more functions such as FMA.
-// execOp returns the calculated answer to the operation as Decimal64.
-func execOp(context Context64, a, b, c Decimal64, op string) decValContainer {
+// execOp returns the calculated answer to the operation as DecParts.
+func execOp(context Context64, a, b, c DecParts, op string) decValContainer {
 	if IgnorePanics {
 		defer func() {
 			if r := recover(); r != nil {
@@ -243,21 +243,19 @@ func execOp(context Context64, a, b, c Decimal64, op string) decValContainer {
 	}
 	switch op {
 	case "add":
-		return decValContainer{calculated: context.Add(a, b)}
+		return decValContainer{calculated: context.DecAdd(a, b)}
 	case "multiply":
-		return decValContainer{calculated: context.Mul(a, b)}
+		return decValContainer{calculated: context.DecMul(a, b)}
 	case "abs":
 		return decValContainer{calculated: a.Abs()}
-	case "divide":
-		return decValContainer{calculated: context.Quo(a, b)}
+	// case "divide":
+	// 	return decValContainer{calculated: context.DecQuo(a, b)}
 	case "fma":
-		return decValContainer{calculated: context.FMA(a, b, c)}
+		return decValContainer{calculated: context.DecFMA(a, b, c)}
 	case "compare":
 		return decValContainer{calculatedString: fmt.Sprintf("%d", int64(a.Cmp(b)))}
-	case "class":
-		return decValContainer{calculatedString: a.Class()}
 	default:
 		fmt.Println("end of execOp, no tests ran", op)
 	}
-	return decValContainer{calculated: Zero64}
+	return decValContainer{calculated: DecZero}
 }

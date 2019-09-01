@@ -1,9 +1,24 @@
 package decimal
 
-// add128 adds two decParts with full precision in 128 bits of significand
-func (dp *decParts) add128(ep *decParts) decParts {
+// DecParts stores the constituting DecParts of a decimal64.
+// type DecParts struct {
+// 	fl          flavor
+// 	sign        int
+// 	exp         int
+// 	significand uint128T
+// 	dec         *Decimal64
+// }
+
+var DecZero = DecParts{flNormal, 0, 0, uint128T{0, 0}, nil}
+var NegDecZero = DecParts{flNormal, 1, 0, uint128T{0, 0}, nil}
+var DecZeroes = []DecParts{DecZero, NegDecZero}
+var DecInf = DecParts{flInf, 1, 0, uint128T{0, 0}, nil}
+var DecNaN = DecParts{flQNaN, 1, 0, uint128T{0, 0}, nil}
+
+// add128 adds two DecParts with full precision in 128 bits of significand
+func (dp *DecParts) add128(ep *DecParts) DecParts {
 	dp.matchScales128(ep)
-	var ans decParts
+	var ans DecParts
 	ans.exp = dp.exp
 	if dp.sign == ep.sign {
 		ans.sign = dp.sign
@@ -22,7 +37,7 @@ func (dp *decParts) add128(ep *decParts) decParts {
 	return ans
 }
 
-func (dp *decParts) matchScales128(ep *decParts) {
+func (dp *DecParts) matchScales128(ep *DecParts) {
 	expDiff := ep.exp - dp.exp
 	if (ep.significand != uint128T{0, 0}) {
 		if expDiff < 0 {
@@ -35,7 +50,7 @@ func (dp *decParts) matchScales128(ep *decParts) {
 	}
 }
 
-func (dp *decParts) matchSignificandDigits(ep *decParts) {
+func (dp *DecParts) matchSignificandDigits(ep *DecParts) {
 	expDiff := ep.significand.numDecimalDigits() - dp.significand.numDecimalDigits()
 	if expDiff >= 0 {
 		dp.significand = dp.significand.mul(powerOfTen128(expDiff + 1))
@@ -46,7 +61,7 @@ func (dp *decParts) matchSignificandDigits(ep *decParts) {
 	ep.exp -= -expDiff - 1
 }
 
-func (dp *decParts) roundToLo() discardedDigit {
+func (dp *DecParts) roundToLo() discardedDigit {
 	var rndStatus discardedDigit
 	if dp.significand.numDecimalDigits() > 16 {
 		var remainder uint64
@@ -58,48 +73,48 @@ func (dp *decParts) roundToLo() discardedDigit {
 	return rndStatus
 }
 
-func (dp *decParts) isZero() bool {
+func (dp *DecParts) isZero() bool {
 	return (dp.significand == uint128T{}) && dp.significand.hi == 0 && dp.fl == flNormal
 }
 
-func (dp *decParts) isInf() bool {
+func (dp *DecParts) isInf() bool {
 	return dp.fl == flInf
 }
 
-func (dp *decParts) isNaN() bool {
+func (dp *DecParts) isNaN() bool {
 	return dp.fl == flQNaN || dp.fl == flSNaN
 }
 
-func (dp *decParts) isQNaN() bool {
+func (dp *DecParts) isQNaN() bool {
 	return dp.fl == flQNaN
 }
 
-func (dp *decParts) isSNaN() bool {
+func (dp *DecParts) isSNaN() bool {
 	return dp.fl == flSNaN
 }
 
-func (dp *decParts) isSubnormal() bool {
+func (dp *DecParts) isSubnormal() bool {
 	return (dp.significand != uint128T{}) && dp.significand.lo < decimal64Base && dp.fl == flNormal
 }
 
 // separation gets the separation in decimal places of the MSD's of two decimal 64s
-func (dp *decParts) separation(ep *decParts) int {
+func (dp *DecParts) separation(ep *DecParts) int {
 	return dp.significand.numDecimalDigits() + dp.exp - ep.significand.numDecimalDigits() - ep.exp
 }
 
 // removeZeros removes zeros and increments the exponent to match.
-func (dp *decParts) removeZeros() {
+func (dp *DecParts) removeZeros() {
 	zeros := countTrailingZeros(dp.significand.lo)
 	dp.significand.lo /= powersOf10[zeros]
 	dp.exp += zeros
 }
 
 // isinf returns true if the decimal is an infinty
-func (dp *decParts) isinf() bool {
+func (dp *DecParts) isinf() bool {
 	return dp.fl == flInf
 }
 
-func (dp *decParts) rescale(targetExp int) (rndStatus discardedDigit) {
+func (dp *DecParts) rescale(targetExp int) (rndStatus discardedDigit) {
 	expDiff := targetExp - dp.exp
 	mag := dp.significand.numDecimalDigits()
 	rndStatus = roundStatus(dp.significand.lo, dp.exp, targetExp)

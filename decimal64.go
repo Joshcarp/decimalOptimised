@@ -35,8 +35,8 @@ type Decimal64 struct {
 	bits uint64
 }
 
-// decParts stores the constituting decParts of a decimal64.
-type decParts struct {
+// DecParts stores the constituting DecParts of a decimal64.
+type DecParts struct {
 	fl          flavor
 	sign        int
 	exp         int
@@ -239,10 +239,10 @@ func (d Decimal64) parts() (fl flavor, sign int, exp int, significand uint64) {
 	return
 }
 
-// getParts gets the parts and returns in decParts stuct, doesn't get the magnitude due to performance issues\
-func (d Decimal64) getParts() decParts {
+// getParts gets the parts and returns in DecParts stuct, doesn't get the magnitude due to performance issues\
+func (d Decimal64) getParts() DecParts {
 	flavor, sign, exp, significand := d.parts()
-	return decParts{flavor, sign, exp, uint128T{significand, 0}, &d}
+	return DecParts{flavor, sign, exp, uint128T{significand, 0}, &d}
 }
 
 func expWholeFrac(exp int, significand uint64) (exp2 int, whole uint64, frac uint64) {
@@ -425,7 +425,7 @@ func numDecimalDigits(n uint64) int {
 }
 
 // propagateNan returns the decimal pointer to the NaN that is to be propogated else nil
-func propagateNan(d ...*decParts) *Decimal64 {
+func propagateNan(d ...*DecParts) *Decimal64 {
 	for _, dec := range d {
 		if dec.fl == flSNaN {
 			return dec.dec
