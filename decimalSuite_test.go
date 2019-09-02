@@ -9,7 +9,7 @@ import (
 )
 
 type decValContainer struct {
-	val1, val2, val3, expected, calculated DecParts
+	val1, val2, val3, expected, calculated *DecParts
 	calculatedString                       string
 	parseError                             error
 }
@@ -222,7 +222,7 @@ func runTest(context Context64, testVals decValContainer, testValStrings testCas
 				calcRestul)
 		}
 		return nil
-	} else if testVals.expected.Cmp(calcRestul) != 0 && !(isRoundingErr(calcRestul, testVals.expected) && IgnoreRounding) {
+	} else if testVals.expected.Cmp(calcRestul) != 0 {
 		return fmt.Errorf(
 			"failed:\n%scalculated result: %v",
 			testValStrings,
@@ -233,7 +233,7 @@ func runTest(context Context64, testVals decValContainer, testValStrings testCas
 
 // TODO: get runTest to run more functions such as FMA.
 // execOp returns the calculated answer to the operation as DecParts.
-func execOp(context Context64, a, b, c DecParts, op string) decValContainer {
+func execOp(context Context64, a, b, c *DecParts, op string) decValContainer {
 	if IgnorePanics {
 		defer func() {
 			if r := recover(); r != nil {
@@ -257,5 +257,5 @@ func execOp(context Context64, a, b, c DecParts, op string) decValContainer {
 	default:
 		fmt.Println("end of execOp, no tests ran", op)
 	}
-	return decValContainer{calculated: DecZero}
+	return decValContainer{calculated: &DecZero}
 }

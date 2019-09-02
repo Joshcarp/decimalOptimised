@@ -3,43 +3,43 @@ package decimal
 import "fmt"
 
 // Abs computes ||d||.
-func (d DecParts) Abs() DecParts {
+func (d *DecParts) Abs() *DecParts {
 	d.sign = 0
 	return d
 }
 
 // IsNaN computes d + e with default rounding
-func (d DecParts) IsNaN() bool {
+func (d *DecParts) IsNaN() bool {
 	return d.fl == flQNaN || d.fl == flSNaN
 }
 
 // IsNaN computes d + e with default rounding
-func (d DecParts) String() string {
+func (d *DecParts) String() string {
 	return fmt.Sprintf("neg(%d) %d * 10 ^ %d", d.sign, d.significand, d.exp)
 }
 
 // Add computes d + e with default rounding
-func (d DecParts) Add(e DecParts) DecParts {
+func (d *DecParts) Add(e *DecParts) *DecParts {
 	return DefaultContext.DecAdd(d, e)
 }
 
 // FMA computes d*e + f with default rounding.
-func (d DecParts) FMA(e, f DecParts) DecParts {
+func (d *DecParts) FMA(e, f *DecParts) *DecParts {
 	return DefaultContext.DecFMA(d, e, f)
 }
 
 // Mul computes d * e with default rounding.
-func (d DecParts) Mul(e DecParts) DecParts {
+func (d *DecParts) Mul(e *DecParts) *DecParts {
 	return DefaultContext.DecMul(d, e)
 }
 
 // Sub returns d - e.
-func (d DecParts) Sub(e DecParts) DecParts {
+func (d *DecParts) Sub(e *DecParts) *DecParts {
 	return d.Add(e.Neg())
 }
 
 // Quo computes d / e with default rounding.
-func (d DecParts) Quo(e DecParts) DecParts {
+func (d *DecParts) Quo(e *DecParts) *DecParts {
 	return DefaultContext.DecQuo(d, e)
 }
 
@@ -50,8 +50,8 @@ func (d DecParts) Quo(e DecParts) DecParts {
 //    0 if d == e (incl. -0 == 0, -Inf == -Inf, and +Inf == +Inf)
 //   +1 if d >  e
 //
-func (dp DecParts) Cmp(ep DecParts) int {
-	if dec := propagateNan(&dp, &ep); dec != nil {
+func (dp *DecParts) Cmp(ep *DecParts) int {
+	if dec := propagateNan(dp, ep); dec != nil {
 		return -2
 	}
 	if dp.isZero() && ep.isZero() {
@@ -65,34 +65,34 @@ func (dp DecParts) Cmp(ep DecParts) int {
 }
 
 // Neg computes -d.
-func (d DecParts) Neg() DecParts {
+func (d *DecParts) Neg() *DecParts {
 	d.sign = ^d.sign
 	return d
 }
 
 // DecQuo computes d / e.
-func (ctx Context64) DecQuo(dp, ep DecParts) DecParts {
+func (ctx Context64) DecQuo(dp, ep *DecParts) *DecParts {
 	var ans DecParts
 	ans.sign = dp.sign ^ ep.sign
 	if dp.isZero() {
 		if ep.isZero() {
-			return DecNaN
+			return &DecNaN
 		}
-		return DecZeroes[ans.sign]
+		return &DecZeroes[ans.sign]
 	}
 	if dp.isinf() {
 		if ep.isinf() {
-			return DecNaN
+			return &DecNaN
 		}
-		return DecInf
+		return &DecInf
 	}
 	if ep.isinf() {
-		return DecZeroes[ans.sign]
+		return &DecZeroes[ans.sign]
 	}
 	if ep.isZero() {
-		return DecInf
+		return &DecInf
 	}
-	dp.matchSignificandDigits(&ep)
+	dp.matchSignificandDigits(ep)
 	ans.exp = dp.exp - ep.exp
 	for {
 		for dp.significand.gt(ep.significand) {
@@ -126,9 +126,9 @@ func (ctx Context64) DecQuo(dp, ep DecParts) DecParts {
 		ans.exp, ans.significand.lo = renormalize(ans.exp, ans.significand.lo)
 	}
 	if ans.significand.lo > maxSig || ans.exp > expMax {
-		return DecInf
+		return &DecInf
 	}
-	return ans
+	return &ans
 }
 
 // Sqrt computes √d.
@@ -164,7 +164,7 @@ func (ctx Context64) DecQuo(dp, ep DecParts) DecParts {
 // }
 
 // DecAdd computes d + e
-func (ctx Context64) DecAdd(dp, ep DecParts) DecParts {
+func (ctx Context64) DecAdd(dp, ep *DecParts) *DecParts {
 	if dp.fl == flInf || ep.fl == flInf {
 		if dp.fl != flInf {
 			return ep
@@ -172,7 +172,7 @@ func (ctx Context64) DecAdd(dp, ep DecParts) DecParts {
 		if ep.fl != flInf || ep.sign == dp.sign {
 			return dp
 		}
-		return DecNaN
+		return &DecNaN
 	}
 	if dp.significand.lo == 0 {
 		return ep
@@ -181,7 +181,7 @@ func (ctx Context64) DecAdd(dp, ep DecParts) DecParts {
 	}
 	ep.removeZeros()
 	dp.removeZeros()
-	sep := dp.separation(&ep)
+	sep := dp.separation(ep)
 
 	if sep < 0 {
 		dp, ep = ep, dp
@@ -191,8 +191,8 @@ func (ctx Context64) DecAdd(dp, ep DecParts) DecParts {
 		return dp
 	}
 	var rndStatus discardedDigit
-	dp.matchScales128(&ep)
-	ans := dp.add128(&ep)
+	dp.matchScales128(ep)
+	ans := dp.add128(ep)
 	rndStatus = ans.roundToLo()
 	if ans.exp < -expOffset {
 		rndStatus = ans.rescale(-expOffset)
@@ -202,29 +202,29 @@ func (ctx Context64) DecAdd(dp, ep DecParts) DecParts {
 		ans.exp, ans.significand.lo = renormalize(ans.exp, ans.significand.lo)
 	}
 	if ans.exp > expMax || ans.significand.lo > maxSig {
-		return ans
+		return &ans
 	}
-	return ans
+	return &ans
 }
 
 // DecFMA computes d*e + f
-func (ctx Context64) DecFMA(dp, ep, fp DecParts) DecParts {
+func (ctx Context64) DecFMA(dp, ep, fp *DecParts) *DecParts {
 	var ans DecParts
 	ans.sign = dp.sign ^ ep.sign
 	if dp.fl == flInf || ep.fl == flInf {
 		if fp.fl == flInf && ans.sign != fp.sign {
-			return DecNaN
+			return &DecNaN
 		}
 		if ep.isZero() || dp.isZero() {
-			return DecNaN
+			return &DecNaN
 		}
-		return DecInf
+		return &DecInf
 	}
 	if ep.significand.lo == 0 || dp.significand.lo == 0 {
 		return fp
 	}
 	if fp.fl == flInf {
-		return DecInf
+		return &DecInf
 	}
 
 	var rndStatus discardedDigit
@@ -232,12 +232,12 @@ func (ctx Context64) DecFMA(dp, ep, fp DecParts) DecParts {
 	dp.removeZeros()
 	ans.exp = dp.exp + ep.exp
 	ans.significand = umul64(dp.significand.lo, ep.significand.lo)
-	sep := ans.separation(&fp)
+	sep := ans.separation(fp)
 	if fp.significand.lo != 0 {
 		if sep < -17 {
 			return fp
 		} else if sep <= 17 {
-			ans = ans.add128(&fp)
+			ans = ans.add128(fp)
 		}
 	}
 	rndStatus = ans.roundToLo()
@@ -249,24 +249,24 @@ func (ctx Context64) DecFMA(dp, ep, fp DecParts) DecParts {
 		ans.exp, ans.significand.lo = renormalize(ans.exp, ans.significand.lo)
 	}
 	if ans.exp > expMax || ans.significand.lo > maxSig {
-		return DecInf
+		return &DecInf
 	}
-	return ans
+	return &ans
 }
 
 // DecMul computes d * e
-func (ctx Context64) DecMul(dp, ep DecParts) DecParts {
+func (ctx Context64) DecMul(dp, ep *DecParts) *DecParts {
 
 	var ans DecParts
 	ans.sign = dp.sign ^ ep.sign
 	if dp.fl == flInf || ep.fl == flInf {
 		if ep.isZero() || dp.isZero() {
-			return DecNaN
+			return &DecNaN
 		}
-		return DecInf
+		return &DecInf
 	}
 	if ep.significand.lo == 0 || dp.significand.lo == 0 {
-		return DecZeroes[ans.sign]
+		return &DecZeroes[ans.sign]
 	}
 	var roundStatus discardedDigit
 	significand := umul64(dp.significand.lo, ep.significand.lo)
@@ -280,7 +280,7 @@ func (ctx Context64) DecMul(dp, ep DecParts) DecParts {
 	}
 	ans.significand.lo = ctx.roundingMode.round(ans.significand.lo, roundStatus)
 	if ans.significand.lo > maxSig || ans.exp > expMax {
-		return DecInf
+		return &DecInf
 	}
-	return ans
+	return &ans
 }

@@ -8,20 +8,20 @@ import (
 )
 
 // ParseDecParts parses a string representation of a number as a Decimal.
-func ParseDecParts(s string) (DecParts, error) {
+func ParseDecParts(s string) (*DecParts, error) {
 	state := stringScanner{reader: strings.NewReader(s)}
 	var d DecParts
 	if err := d.Scan(&state, 'e'); err != nil {
-		return d, err
+		return &d, err
 	}
 
 	// entire string must have been consumed
 	r, _, err := state.ReadRune()
 	if err == nil {
-		return d, fmt.Errorf("expected end of string, found %c", r)
+		return &d, fmt.Errorf("expected end of string, found %c", r)
 	}
 	logicCheck(err == io.EOF, "%v == io.EOF", err)
-	return d, nil
+	return &d, nil
 }
 
 // MustParseDecParts parses a string as a Decimal and returns the value or
@@ -31,7 +31,7 @@ func MustParseDecParts(s string) DecParts {
 	if err != nil {
 		panic(err)
 	}
-	return d
+	return *d
 }
 
 // Scan implements fmt.Scanner.
