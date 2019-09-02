@@ -1,3 +1,3 @@
-module github.com/Joshcarp/decimalOptimised
+module github.com/Joshcarp/decimaloptimised
 
 go 1.12
