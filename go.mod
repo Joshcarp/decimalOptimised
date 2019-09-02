@@ -1,4 +1,4 @@
-module github.com/joshcarp/decimalOptimised
+module github.com/joshcarp/decimaloptimised
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
